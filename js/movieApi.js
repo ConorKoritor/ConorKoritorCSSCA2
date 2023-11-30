@@ -23,8 +23,27 @@ async function searchGame(options){
     }
     let result = await response.json();
     
+    result.forEach(element => {
+        populateGames(element);
+    });
     console.log(result);
     } catch (error) {
 	console.error(error);
     }
+}
+
+function populateGames(obj)
+{  
+    const searchedGames = document.getElementById("gameDisplay");
+
+    let myDiv = document.createElement('div');
+    let gameTitle = document.createElement('h1');
+    let cheapestPrice = document.createElement('h3');
+
+    gameTitle.innerHTML = obj['external'];
+    cheapestPrice.innerHTML = obj['cheapest'];
+
+    myDiv.appendChild(gameTitle);
+    myDiv.appendChild(cheapestPrice);
+    searchedGames.appendChild(myDiv);
 }
