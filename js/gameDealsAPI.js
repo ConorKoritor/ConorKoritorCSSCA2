@@ -11,7 +11,9 @@ document.getElementById("submitSearchGame").addEventListener("click", () => sear
 const searchedGames = document.getElementById("gameDisplay");
 //stores the store info in a const so it can be referred back to later when we are getting the game deals
 //this will allow us to display which store is offering which deal
-const stores = getStores();
+let stores = null;
+//get stores saves the json array to the stores variable so we can access it later
+getStores();
 
 async function getStores(){
     //gets the store info which never changes
@@ -19,8 +21,7 @@ async function getStores(){
     
     try {
 	    const response = await fetch(url, options);
-	    const result = await response.text();
-	    return result;
+	    stores = await response.json();
     } catch (error) {
 	    console.error(error);
     }
@@ -45,15 +46,15 @@ async function searchGame(options){
         }
         let result = await response.json();
     
-        result.forEach(element => {
-            populateGames(element);
+        result.forEach(game => {
+            populateGames(game);
         });
     } catch (error) {
 	    console.error(error);
     }
 }
 
-function populateGames(obj)
+function populateGames(game)
 {  
     //Creates a Bootstrap card and populates it with the data from searchGame()
     // The data taken here is the games name and the box art of that game
@@ -68,7 +69,7 @@ function populateGames(obj)
     col1.className = 'col-md-4';
 
     let coverArt = document.createElement('img');
-    coverArt.src = obj['thumb'];
+    coverArt.src = game['thumb'];
     coverArt.className = "img-fluid rounded-start";
 
     let col2 = document.createElement('div');
@@ -79,11 +80,11 @@ function populateGames(obj)
 
     let gameTitle = document.createElement('h5');
     gameTitle.className = 'card-title';
-    gameTitle.innerHTML = obj['external'];
+    gameTitle.innerHTML = game['external'];
 
     col1.appendChild(coverArt);
     cardBody.appendChild(gameTitle);
-    getDeals(obj,cardBody)
+    getDeals(game,cardBody)
     col2.appendChild(cardBody);
     row.appendChild(col1);
     row.appendChild(col2);
@@ -92,15 +93,16 @@ function populateGames(obj)
     searchedGames.appendChild(card);
 }
 
-async function getDeals(obj, container)
+async function getDeals(game, cardBody)
 {
+    //this function is called for  every game that was found in the search and is called from populate games()
     //takes the name of the game from populate games, seperates the name at the spaces and combines them with
     //%20 similar to what we did in searchGame()
-    let gameTitle = obj['external'];
+    let gameTitle = game['external'];
     let seperatedGameTitle = gameTitle.split(" ");
     let combinedGameTitle = seperatedGameTitle.join("%20");
     //plugs the combined game name into the api link to get back results for that game
-    let url = `https://cheapshark-game-deals.p.rapidapi.com/deals?title=${obj['external']}&output=json&sortBy=Deal%20Rating&exact=true&metacritic=0`;
+    let url = `https://cheapshark-game-deals.p.rapidapi.com/deals?title=${combinedGameTitle}&output=json&sortBy=Deal%20Rating&exact=true&metacritic=0`;
 
     try {
         let response = await fetch(url, options);
@@ -109,58 +111,130 @@ async function getDeals(obj, container)
         }
         let result = await response.json();
 
-        let dealList = document.createElement('ul');
-        dealList.style = "list-style-type:none;";
+        //Create containers for each of the data points.
+        //The data I want is a list of stores where the game is on sale
+        //the sale prices, the retail price of the game,
+        //the steam rating and the metacritic rating
+        //and the link to both steam and metacritic
+      
 
-        let rating = document.createElement('p');
-        rating.className='card-text';
-
-        let metacriticGameLink = document.createElement('a');
-        let steamGameLink = document.createElement('a');
-
+        //This api endpoint might return 5 results per game as they would be considered seperate deals
+        //this variable is so that it only create/append 1 review per game 
         let hasCreatedReviewData = false;
 
-        result.forEach(element => {
-            if(obj['external'] == element.title)
-            {
-                if(!hasCreatedReviewData){
-                    if(element.metacriticLink != null){  
-                        if(element.metacriticScore !=0){                  
-                            rating.innerHTML= "Metacritic Rating = " + element.metacriticScore;
-                        }
-                        else{
-                            rating.innerHTML= "No Metacritic Rating";
-                        }
-                        metacriticGameLink.href = "https://metacritic.com" + element.metacriticLink;
-                        metacriticGameLink.textContent = `${obj['external']} Metacritic Link`;
-                    }
-                    else if(element.steamAppID != null){
-                        rating.innerHTML= "Steam Rating = " + element.steamRatingPercent;
-                    }
-                    else{    
-                        rating.innerHTML= "No Game Rating Data Available";
-                        gameLinkLink.textContent= "No Game Link Available";
-                    }
+        result.forEach(deal => {
+            
+            //populateRatingsAndRetail creates elements for Game Deals and the retail price of the game
+            //it also takes in the bool hasCreatedReviewData and returns it so that the review data
+            //and retail price will only be created once even if the game has multiple deals that are
+            //returned
+            hasCreatedReviewData = populateRatingsAndRetail(game, deal, cardBody, hasCreatedReviewData);
 
-                    if(element.steamAppID!=null){
-                        
-                        steamGameLink.href = "https://store.steampowered.com/app/" + element.steamAppID;
-                        steamGameLink.textContent = `${obj['external']} Steam Link`;
-                    }
-
-                    hasCreatedReviewData = true;
-                }
-
-
-            }
+            populateDeals(element, cardBody)
+            
         })
 
-        container.appendChild(rating);
-        container.appendChild(gameLink);
+        //add all of the elements of data from the getDeals endpoint and adds them to the container that will
+        //be added to the card div
+        
 
     } catch (error) {
         console.error(error);
     }
 
     return;
+}
+
+function populateRatingsAndRetail(gameObj, dealObj, container, hasCreatedReviewData){
+    //Create containers for each of the data points.
+    // the retail price of the game,
+    //the steam rating and the metacritic rating
+    //and the link to both steam and metacritic
+    let metacriticRating = document.createElement('p');
+    metacriticRating.className='card-text';
+
+    let steamRating = document.createElement('p');
+    steamRating.className='card-text';
+
+    let metacriticGameLink = document.createElement('a');
+    let steamGameLink = document.createElement('a');   
+
+    let retailPrice = document.createElement('p');
+    retailPrice.className='card-text';
+
+
+    //checks if the title of the game is the same as the obj that was passed in from populate games
+    if(gameObj['external'] == dealObj.title)
+    {
+        //checks if we have already created review data
+        if(!hasCreatedReviewData){
+            retailPrice.innerHTML = "Retail Price: $" + dealObj.normalPrice;
+
+            //checks if there is metacritic data to pull from the api
+            if(dealObj.metacriticLink != null){  
+                if(dealObj.metacriticScore !=0){                  
+                    metacriticRating.innerHTML= "Metacritic Rating = " + dealObj.metacriticScore;
+                }
+                else{
+                    metacriticRating.innerHTML= "No Metacritic Rating";
+                }
+                metacriticGameLink.href = "https://metacritic.com" + dealObj.metacriticLink;
+                metacriticGameLink.textContent = `${gameObj['external']} Metacritic Link`;
+            }
+            //if there isnt we display that there isnt
+            else{    
+                metacriticRating.innerHTML= "No Metacritic Rating Data Available";
+                metacriticGameLink.textContent= "No Metacritic Link Available";
+            }
+
+            //same as metacritic we check if there is steam data
+            if(dealObj.steamAppID!=null){
+                steamRating.innerHTML= "Steam Rating = " + dealObj.steamRatingPercent;
+                steamGameLink.href = "https://store.steampowered.com/app/" + dealObj.steamAppID;
+                steamGameLink.textContent = `${gameObj['external']} Steam Link`;
+            }
+            else{    
+                steamRating.innerHTML= "No Steam Rating Data Available";
+                steamGameLink.textContent= "No Steam Link Available";
+            }
+
+            hasCreatedReviewData = true;
+        }
+        container.appendChild(retailPrice);
+        container.appendChild(metacriticGameLink);
+        container.appendChild(metacriticRating);
+        container.appendChild(steamGameLink);
+        container.appendChild(steamRating);
+
+        return hasCreatedReviewData;
+    }
+
+    function populateDeals(dealObj, container){
+
+        let dealList = document.createElement('ul');
+        dealList.style = "list-style-type:none;";
+
+        let dealLabel = document.createElement('p');
+        dealLabel.className = 'card-text';
+        dealLabel.innerHTML = "Deals";
+        //Loops through the stores array to check if the store matches the store the deal is coming from
+        //and then sets the stores value to that name
+        let store = "";
+
+        stores.forEach(stores => {
+            if(stores.storeID == dealObj.storeID){
+                store = stores.storeName;
+            }
+        });
+
+        //if the game is on sale display that sale price along with the store it comes from
+        let deal = document.createElement('li');
+        if(dealObj.isOnSale == "1"){
+            deal.innerHTML = "Store: " + store + "  Deal Price: $" + dealObj.salePrice;
+            dealList.appendChild(deal);
+        }
+
+        container.appendChild(dealLabel);
+        container.appendChild(dealList);
+    }
 }
