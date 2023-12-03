@@ -132,19 +132,23 @@ async function getDeals(game, cardBody)
             //populateRatingsAndRetail creates elements for Game Deals and the retail price of the game
             //first we check if it has run once already. If it has then it doesn't need to run
             //again for each deal as we only want this info displayed once
-            if(!hasCreatedReviewData){
-                populateRatingsAndRetail(game, deal, cardBody, hasCreatedReviewData);
-                hasCreatedReviewData = true;
+            //checks if the title of the game is the same as the obj that was passed in from populate games
+            if(game['external'] == deal.title)
+            {
+                if(!hasCreatedReviewData){
+                    populateRatingsAndRetail(game, deal, cardBody, hasCreatedReviewData);
+                    hasCreatedReviewData = true;
+                }
             }
             populateDeals(deal, dealList);
 
             //checks if the deal List is empty which means there are no sales available for that game
             //displays that there are no deals available
-            if(isEmpty("dealList")){
+            /*if(isEmpty("dealList")){
                 let deal = document.createElement('li');
                 deal.innerHTML = "No Deals Available";
                 dealList.appendChild(deal);
-            }
+            }*/
             
         })
 
@@ -180,48 +184,46 @@ function populateRatingsAndRetail(gameObj, dealObj, container, hasCreatedReviewD
     retailPrice.className='card-text';
 
 
-    //checks if the title of the game is the same as the obj that was passed in from populate games
-    if(gameObj['internalName'] == dealObj.internalName)
-    {
-            retailPrice.innerHTML = "Retail Price: $" + dealObj.normalPrice;
+    
+    retailPrice.innerHTML = "Retail Price: $" + dealObj.normalPrice;
 
-            //checks if there is metacritic data to pull from the api
-            if(dealObj.metacriticLink != null){  
-                if(dealObj.metacriticScore !=0){                  
-                    metacriticRating.innerHTML= "Metacritic Rating = " + dealObj.metacriticScore;
-                }
-                else{
-                    metacriticRating.innerHTML= "No Metacritic Rating";
-                }
-                metacriticGameLink.href = "https://metacritic.com" + dealObj.metacriticLink;
-                metacriticGameLink.textContent = `${gameObj['external']} Metacritic Link`;
-            }
-            //if there isnt we display that there isnt
-            else{    
-                metacriticRating.innerHTML= "No Metacritic Rating Data Available";
-                metacriticGameLink.textContent= "No Metacritic Link Available";
-            }
-
-            //same as metacritic we check if there is steam data
-            if(dealObj.steamAppID!=null){
-                steamRating.innerHTML= "Steam Rating = " + dealObj.steamRatingPercent;
-                steamGameLink.href = "https://store.steampowered.com/app/" + dealObj.steamAppID;
-                steamGameLink.textContent = `${gameObj['external']} Steam Link`;
-            }
-            else{    
-                steamRating.innerHTML= "No Steam Rating Data Available";
-                steamGameLink.textContent= "No Steam Link Available";
-            }
-
-            hasCreatedReviewData = true;
+    //checks if there is metacritic data to pull from the api
+    if(dealObj.metacriticLink != null){  
+        if(dealObj.metacriticScore !=0){                  
+            metacriticRating.innerHTML= "Metacritic Rating = " + dealObj.metacriticScore;
         }
-        container.appendChild(retailPrice);
-        container.appendChild(metacriticGameLink);
-        container.appendChild(metacriticRating);
-        container.appendChild(steamGameLink);
-        container.appendChild(steamRating);
-
+        else{
+            metacriticRating.innerHTML= "No Metacritic Rating";
+        }
+        metacriticGameLink.href = "https://metacritic.com" + dealObj.metacriticLink;
+        metacriticGameLink.textContent = `${gameObj['external']} Metacritic Link`;
     }
+    //if there isnt we display that there isnt
+    else{    
+        metacriticRating.innerHTML= "No Metacritic Rating Data Available";
+        metacriticGameLink.textContent= "No Metacritic Link Available";
+    }
+
+    //same as metacritic we check if there is steam data
+    if(dealObj.steamAppID!=null){
+        steamRating.innerHTML= "Steam Rating = " + dealObj.steamRatingPercent;
+        steamGameLink.href = "https://store.steampowered.com/app/" + dealObj.steamAppID;
+        steamGameLink.textContent = `${gameObj['external']} Steam Link`;
+    }
+    else{    
+        steamRating.innerHTML= "No Steam Rating Data Available";
+        steamGameLink.textContent= "No Steam Link Available";
+    }
+
+    hasCreatedReviewData = true;
+
+    container.appendChild(retailPrice);
+    container.appendChild(metacriticGameLink);
+    container.appendChild(metacriticRating);
+    container.appendChild(steamGameLink);
+    container.appendChild(steamRating);
+
+}
 
 
 function populateDeals(dealObj, dealList){
@@ -246,7 +248,7 @@ function populateDeals(dealObj, dealList){
 
 }
 
-function isEmpty(id) {
+/*function isEmpty(id) {
     //this function is to check if the ul dealList is empty so that I can print out there are no deals available
     return document.getElementById(id).innerHTML.trim() == ""
-  }
+  }*/
