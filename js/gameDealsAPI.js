@@ -84,6 +84,7 @@ function populateGames(game)
 
     col1.appendChild(coverArt);
     cardBody.appendChild(gameTitle);
+    //sends the card body and the game to deals to search for and populate the deals that the game may have
     getDeals(game,cardBody)
     col2.appendChild(cardBody);
     row.appendChild(col1);
@@ -111,36 +112,52 @@ async function getDeals(game, cardBody)
         }
         let result = await response.json();
 
-        //Create containers for each of the data points.
-        //The data I want is a list of stores where the game is on sale
-        //the sale prices, the retail price of the game,
-        //the steam rating and the metacritic rating
-        //and the link to both steam and metacritic
-      
-
         //This api endpoint might return 5 results per game as they would be considered seperate deals
         //this variable is so that it only create/append 1 review per game 
         let hasCreatedReviewData = false;
 
+        //Create the deal label and the deal list poutside of the for each loop.
+        //this means that the ul container for each deal li is not made more than once and the 
+        //p that labels the deal list is not created more than once
+        let dealLabel = document.createElement('p');
+        dealLabel.className = 'card-text';
+        dealLabel.innerHTML = "Deals";
+
+        let dealList = document.createElement('ul');
+        dealList.id = "dealList"
+        dealList.style = "list-style-type:none;";    
+
         result.forEach(deal => {
             
             //populateRatingsAndRetail creates elements for Game Deals and the retail price of the game
-            //it also takes in the bool hasCreatedReviewData and returns it so that the review data
-            //and retail price will only be created once even if the game has multiple deals that are
-            //returned
-            hasCreatedReviewData = populateRatingsAndRetail(game, deal, cardBody, hasCreatedReviewData);
+            //first we check if it has run once already. If it has then it doesn't need to run
+            //again for each deal as we only want this info displayed once
+            if(!hasCreatedReviewData){
+                populateRatingsAndRetail(game, deal, cardBody, hasCreatedReviewData);
+                hasCreatedReviewData = true;
+            }
+            populateDeals(deal, dealList);
 
-            populateDeals(element, cardBody)
+            //checks if the deal List is empty which means there are no sales available for that game
+            //displays that there are no deals available
+            if(isEmpty("dealList")){
+                let deal = document.createElement('li');
+                deal.innerHTML = "No Deals Available";
+                dealList.appendChild(deal);
+            }
             
         })
 
         //add all of the elements of data from the getDeals endpoint and adds them to the container that will
         //be added to the card div
         
+        cardBody.appendChild(dealLabel);
+        cardBody.appendChild(dealList);
 
     } catch (error) {
         console.error(error);
     }
+    
 
     return;
 }
@@ -164,10 +181,8 @@ function populateRatingsAndRetail(gameObj, dealObj, container, hasCreatedReviewD
 
 
     //checks if the title of the game is the same as the obj that was passed in from populate games
-    if(gameObj['external'] == dealObj.title)
+    if(gameObj['internalName'] == dealObj.internalName)
     {
-        //checks if we have already created review data
-        if(!hasCreatedReviewData){
             retailPrice.innerHTML = "Retail Price: $" + dealObj.normalPrice;
 
             //checks if there is metacritic data to pull from the api
@@ -206,35 +221,32 @@ function populateRatingsAndRetail(gameObj, dealObj, container, hasCreatedReviewD
         container.appendChild(steamGameLink);
         container.appendChild(steamRating);
 
-        return hasCreatedReviewData;
     }
 
-    function populateDeals(dealObj, container){
 
-        let dealList = document.createElement('ul');
-        dealList.style = "list-style-type:none;";
+function populateDeals(dealObj, dealList){
 
-        let dealLabel = document.createElement('p');
-        dealLabel.className = 'card-text';
-        dealLabel.innerHTML = "Deals";
-        //Loops through the stores array to check if the store matches the store the deal is coming from
-        //and then sets the stores value to that name
-        let store = "";
 
-        stores.forEach(stores => {
-            if(stores.storeID == dealObj.storeID){
-                store = stores.storeName;
-            }
-        });
+    //Loops through the stores array to check if the store matches the store the deal is coming from
+    //and then sets the stores value to that name
+    let store = "";
 
-        //if the game is on sale display that sale price along with the store it comes from
-        let deal = document.createElement('li');
-        if(dealObj.isOnSale == "1"){
-            deal.innerHTML = "Store: " + store + "  Deal Price: $" + dealObj.salePrice;
-            dealList.appendChild(deal);
+    stores.forEach(stores => {
+        if(stores.storeID == dealObj.storeID){
+            store = stores.storeName;
         }
+    });
 
-        container.appendChild(dealLabel);
-        container.appendChild(dealList);
+    //if the game is on sale display that sale price along with the store it comes from
+    let deal = document.createElement('li');
+    if(dealObj.isOnSale == "1"){
+        deal.innerHTML = "$" + dealObj.salePrice + "at " + store;
+        dealList.appendChild(deal);
     }
+
 }
+
+function isEmpty(id) {
+    //this function is to check if the ul dealList is empty so that I can print out there are no deals available
+    return document.getElementById(id).innerHTML.trim() == ""
+  }
