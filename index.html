@@ -9,9 +9,24 @@
 </head>
 <body>
     <!--Takes input from the user to search for a game-->
-    <label for="searchGame">Search For a Game</label>
-    <input type="text" name="searchGame" id="searchGame">
-    <input type="button" value="submitSearchGame" id="submitSearchGame">
+    <nav class="navbar bg-dark border-bottom border-body" data-bs-theme="dark">
+        <div class="container-fluid">
+          <a class="navbar-brand">Videogame Deals Search</a>
+          <div class="row g-3 align-items-center">
+            <div class="col-auto">
+              <span id="searchGameHelp" class="form-text">
+                Input the name of a videogame to find deals
+              </span>
+            </div>
+            <div class="col-auto">
+              <input type="text" id="searchGame" class="form-control" aria-describedby="searchGameHelp">
+            </div>
+            <div class="col-auto"> 
+                <button class="btn btn-outline-success" type="submit" id="submitSearchGame">Search</button>
+            </div>
+          </div>
+        </div>
+      </nav>
 
     <section id="gameDisplay"></section>
     
